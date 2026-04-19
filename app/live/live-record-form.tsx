@@ -39,10 +39,10 @@ function getSupportedMimeType() {
   return "";
 }
 
-export default function LiveRecordForm() {
+export default function LiveRecordForm({ courses: initialCourses = [] }: { courses?: Course[] }) {
   const supabase = createClient();
 
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [courseId, setCourseId] = useState("");
   const [title, setTitle] = useState("");
 
@@ -67,17 +67,6 @@ export default function LiveRecordForm() {
   const lectureIdRef = useRef<number | null>(null);
   const chunkNumberRef = useRef(0);
   const processingRef = useRef(false);
-
-  useEffect(() => {
-    async function loadCourses() {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, name")
-        .order("name", { ascending: true });
-      if (!error && data) setCourses(data);
-    }
-    loadCourses();
-  }, [supabase]);
 
   async function startLiveSession() {
     setError("");
