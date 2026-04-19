@@ -53,7 +53,7 @@ export default async function SearchPage({
     if (error) {
       resultsError = error.message
     } else {
-      results = (foundChunks as JoinedResult[]) ?? []
+      results = (foundChunks as unknown as JoinedResult[]) ?? []
     }
   }
 
