@@ -37,7 +37,7 @@ export default async function MaterialsPage() {
       {coursesError && <p className="text-red-600 mb-4">{coursesError.message}</p>}
 
       <div className="mb-10">
-        <AddMaterialForm userId={data.user.id} courses={courses ?? []} />
+        <AddMaterialForm />
       </div>
 
       <h2 className="text-xl font-semibold mb-4">Saved Materials</h2>
