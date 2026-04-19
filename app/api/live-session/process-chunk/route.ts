@@ -1,27 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { execFile } from "node:child_process";
-import { promises as fs } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { promisify } from "node:util";
 
 export const runtime = "nodejs";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-
-const execFileAsync = promisify(execFile);
-
-const WHISPER_CPP_PATH =
-  process.env.WHISPER_CPP_PATH ||
-  path.join(os.homedir(), "whisper.cpp", "build", "bin", "whisper-cli");
-
-const WHISPER_MODEL_PATH =
-  process.env.WHISPER_MODEL_PATH ||
-  path.join(os.homedir(), "whisper.cpp", "models", "ggml-base.en.bin");
-
-const FFMPEG_PATH = process.env.FFMPEG_PATH || "ffmpeg";
 
 type CourseDocumentRow = { id: number; title: string };
 type CourseChunkRow = {
@@ -133,7 +116,6 @@ function sanitizeNotesResult(value: any, retrievedSources: RetrievedSource[]): N
   };
 }
 
-// Extract a properly shaped NotesResult from a raw state_json object
 function extractNotesFromState(state: any): NotesResult {
   return {
     lecture_summary: typeof state?.lecture_summary === "string" ? state.lecture_summary : "",
@@ -161,7 +143,7 @@ function isClearlyBogusTranscript(text: string) {
   return false;
 }
 
-// Only regenerate notes on chunk 1, 4, 7, 10... to stay within rate limits
+// Regenerate notes on chunks 1, 4, 7, 10... (every 3rd) to protect rate limit
 function shouldRegenerateNotes(chunkNumber: number) {
   return chunkNumber === 1 || chunkNumber % 3 === 1;
 }
@@ -191,27 +173,48 @@ async function callGeminiWithRetry({ prompt, maxAttempts = 5 }: { prompt: string
   throw new Error(lastMessage);
 }
 
-async function ensureLocalToolsExist() {
-  try { await fs.access(WHISPER_CPP_PATH); } catch { throw new Error(`whisper-cli not found at ${WHISPER_CPP_PATH}`); }
-  try { await fs.access(WHISPER_MODEL_PATH); } catch { throw new Error(`Whisper model not found at ${WHISPER_MODEL_PATH}`); }
-}
+async function transcribeAudioChunk(file: File): Promise<string> {
+  if (!GEMINI_API_KEY) throw new Error("Missing GEMINI_API_KEY.");
 
-async function transcribeAudioChunk(file: File) {
-  await ensureLocalToolsExist();
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "legal-live-"));
-  const inputPath = path.join(tempDir, "input.webm");
-  const wavPath = path.join(tempDir, "input.wav");
-  const outputBasePath = path.join(tempDir, "transcript");
-  try {
-    await fs.writeFile(inputPath, Buffer.from(await file.arrayBuffer()));
-    await execFileAsync(FFMPEG_PATH, ["-y","-i",inputPath,"-ar","16000","-ac","1","-c:a","pcm_s16le",wavPath]);
-    await execFileAsync(WHISPER_CPP_PATH, ["-m",WHISPER_MODEL_PATH,"-f",wavPath,"-otxt","-of",outputBasePath,"-nt","-np"]);
-    return (await fs.readFile(`${outputBasePath}.txt`, "utf8")).trim();
-  } catch (error) {
-    throw new Error(error instanceof Error ? error.message : "Local Whisper transcription failed.");
-  } finally {
-    await fs.rm(tempDir, { recursive: true, force: true });
+  const bytes = await file.arrayBuffer();
+  const base64Audio = Buffer.from(bytes).toString("base64");
+  const mimeType = file.type || "audio/webm";
+
+  const prompt = `Transcribe this lecture audio chunk.
+Rules:
+- Return only the spoken words as plain text.
+- Do not add headings.
+- Do not summarize.
+- Do not explain.
+- If the audio is unclear, return the best faithful transcript you can.
+- Do not invent extra content.`.trim();
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+  let lastMessage = "Gemini audio transcription failed.";
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: mimeType, data: base64Audio } },
+          ],
+        }],
+      }),
+    });
+    const data = await readJsonSafely(response);
+    if (response.ok) return extractTextFromGeminiResponse(data);
+    lastMessage = data?.error?.message || `Gemini transcription failed with status ${response.status}.`;
+    const shouldRetry = response.status === 429 || response.status >= 500;
+    if (!shouldRetry || attempt === 5) throw new Error(lastMessage);
+    const retryAfterMs = response.headers.get("retry-after") ? Number(response.headers.get("retry-after")) * 1000 : 0;
+    const delayMs = Math.max(retryAfterMs, Math.min(1000 * 2 ** (attempt - 1), 8000) + Math.floor(Math.random() * 500));
+    await sleep(delayMs);
   }
+  throw new Error(lastMessage);
 }
 
 export async function POST(request: Request) {
@@ -255,15 +258,12 @@ export async function POST(request: Request) {
     const fullTranscript = (allChunks ?? [])
       .map((chunk) => chunk.transcript?.trim()).filter(Boolean).join("\n\n");
 
-    // --- RATE LIMIT GUARD: skip Gemini on intermediate chunks ---
-    // Return previous notes (properly shaped) without calling Gemini
+    // Skip Gemini notes on intermediate chunks to protect rate limit
     if (!shouldRegenerateNotes(chunkNumber)) {
       const { data: existingStateRow } = await supabase
         .from("lecture_state").select("state_json").eq("lecture_id", lectureId).single();
 
       const previousState = (existingStateRow?.state_json ?? {}) as any;
-
-      // ✅ Fix: extract shaped NotesResult from state, not raw state object
       const previousNotes = extractNotesFromState(previousState);
 
       const nextState = {
@@ -279,20 +279,16 @@ export async function POST(request: Request) {
       );
 
       return NextResponse.json({
-        success: true,
-        lectureId,
+        success: true, lectureId,
         totalChunks: (allChunks ?? []).length,
-        fullTranscript,
-        transcript: chunkTranscript,
-        notes: previousNotes,  // ✅ shaped correctly now
-        result: previousNotes,
+        fullTranscript, transcript: chunkTranscript,
+        notes: previousNotes, result: previousNotes,
         retrieved_sources: previousState?.retrieved_sources ?? [],
-        skipped: false,
-        deferred_notes_regeneration: true,
+        skipped: false, deferred_notes_regeneration: true,
       });
     }
 
-    // --- Full Gemini regeneration on chunks 1, 4, 7, 10... ---
+    // Full Gemini notes regeneration on chunks 1, 4, 7, 10...
     const { data: documents } = await supabase
       .from("course_documents").select("id, title")
       .eq("course_id", lecture.course_id).order("created_at", { ascending: false });
