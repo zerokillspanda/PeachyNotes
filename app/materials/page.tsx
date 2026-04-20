@@ -5,6 +5,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import AddMaterialForm from "./add-material-form";
 
+const ADMIN_USER_ID = "7e49b324-6aae-4c84-9703-bd94822eef1a";
+
 type Material = {
   id: number;
   title: string;
@@ -22,38 +24,39 @@ export default function MaterialsPage() {
 
   const [materials, setMaterials] = useState<Material[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loadError, setLoadError] = useState("");
 
-  // For renaming
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renameError, setRenameError] = useState("");
   const [renameLoading, setRenameLoading] = useState(false);
 
-  // For deleting
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState("");
 
-  async function loadData() {
-    const { data: coursesData, error: coursesError } = await supabase
-      .from("courses")
-      .select("id, name")
-      .order("name", { ascending: true });
-
-    const { data: materialsData, error: materialsError } = await supabase
-      .from("course_documents")
-      .select("id, title, created_at, course_id")
-      .order("created_at", { ascending: false });
-
-    if (coursesError || materialsError) {
-      setLoadError(coursesError?.message || materialsError?.message || "Failed to load.");
-    } else {
-      setCourses(coursesData ?? []);
-      setMaterials(materialsData ?? []);
-    }
-  }
-
   useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id === ADMIN_USER_ID) setIsAdmin(true);
+
+      const { data: coursesData, error: coursesError } = await supabase
+        .from("courses")
+        .select("id, name")
+        .order("name", { ascending: true });
+
+      const { data: materialsData, error: materialsError } = await supabase
+        .from("course_documents")
+        .select("id, title, created_at, course_id")
+        .order("created_at", { ascending: false });
+
+      if (coursesError || materialsError) {
+        setLoadError(coursesError?.message || materialsError?.message || "Failed to load.");
+      } else {
+        setCourses(coursesData ?? []);
+        setMaterials(materialsData ?? []);
+      }
+    }
     loadData();
   }, []);
 
@@ -175,21 +178,23 @@ export default function MaterialsPage() {
                   <p className="text-sm text-gray-600">
                     Created: {new Date(material.created_at).toLocaleString()}
                   </p>
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => startRename(material)}
-                      className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50"
-                    >
-                      Rename
-                    </button>
-                    <button
-                      onClick={() => handleDelete(material.id)}
-                      disabled={deletingId === material.id}
-                      className="rounded-md border border-red-300 px-3 py-1 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
-                    >
-                      {deletingId === material.id ? "Deleting..." : "Delete"}
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => startRename(material)}
+                        className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        onClick={() => handleDelete(material.id)}
+                        disabled={deletingId === material.id}
+                        className="rounded-md border border-red-300 px-3 py-1 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        {deletingId === material.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>

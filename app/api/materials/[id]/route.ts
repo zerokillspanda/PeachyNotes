@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+const ADMIN_USER_ID = "7e49b324-6aae-4c84-9703-bd94822eef1a";
+
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
@@ -15,11 +17,11 @@ export async function DELETE(
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return jsonError("Not authenticated.", 401);
+  if (user.id !== ADMIN_USER_ID) return jsonError("Not authorised.", 403);
 
   const documentId = Number(id);
   if (isNaN(documentId)) return jsonError("Invalid material ID.");
 
-  // Delete the chunks first (they reference the document)
   const { error: chunksError } = await supabase
     .from("course_chunks")
     .delete()
@@ -27,7 +29,6 @@ export async function DELETE(
 
   if (chunksError) return jsonError(chunksError.message, 500);
 
-  // Now delete the document itself
   const { error: documentError } = await supabase
     .from("course_documents")
     .delete()
@@ -48,6 +49,7 @@ export async function PATCH(
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return jsonError("Not authenticated.", 401);
+  if (user.id !== ADMIN_USER_ID) return jsonError("Not authorised.", 403);
 
   const documentId = Number(id);
   if (isNaN(documentId)) return jsonError("Invalid material ID.");
