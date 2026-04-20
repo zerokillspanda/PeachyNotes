@@ -187,6 +187,27 @@ export default async function LectureDetailPage({
         </p>
       </div>
 
+      <div className="panel mb-8">
+        <h2 className="text-xl font-semibold">Edit / Overwrite this lecture</h2>
+        <p className="mt-2 text-sm text-gray-700">
+          Want to replace these notes with fresh audio? Choose one of the overwrite options below.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href={`/live?editLectureId=${typedLecture.id}`}
+            className="soft-link bg-[#f8d4bf] text-[#2f2119]"
+          >
+            Start live overwrite
+          </Link>
+          <Link
+            href={`/audio?editLectureId=${typedLecture.id}`}
+            className="soft-link bg-[#d4e0ef] text-[#2f2119]"
+          >
+            Upload audio to overwrite
+          </Link>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="panel">
           <h2 className="text-lg font-semibold">Lecture Info</h2>

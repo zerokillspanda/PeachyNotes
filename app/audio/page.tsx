@@ -7,7 +7,18 @@ type Course = {
   name: string;
 };
 
-export default async function AudioPage() {
+type SearchParams = Promise<{
+  editLectureId?: string;
+}>;
+
+export default async function AudioPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const editLectureId = Number(params.editLectureId);
+
   const supabase = await createClient();
 
   const {
@@ -23,13 +34,33 @@ export default async function AudioPage() {
     .select("id, name")
     .order("name", { ascending: true });
 
+  let editableLecture:
+    | { id: number; course_id: number | null; title: string }
+    | null = null;
+
+  if (editLectureId && !Number.isNaN(editLectureId)) {
+    const { data } = await supabase
+      .from("lectures")
+      .select("id, course_id, title")
+      .eq("id", editLectureId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (data) {
+      editableLecture = data;
+    }
+  }
+
   return (
     <main className="app-page">
       <div className="mb-8">
-        <h1 className="page-title">Audio Upload + Transcription</h1>
+        <h1 className="page-title">
+          {editableLecture ? "Overwrite Lecture (Audio Upload)" : "Audio Upload + Transcription"}
+        </h1>
         <p className="page-subtitle">
-          Upload one lecture audio file, transcribe it, then run your existing
-          legal notes generator on the transcript.
+          {editableLecture
+            ? "Upload fresh audio and overwrite this lecture’s transcript and generated notes."
+            : "Upload one lecture audio file, transcribe it, then run your existing legal notes generator on the transcript."}
         </p>
       </div>
 
@@ -38,7 +69,12 @@ export default async function AudioPage() {
           Could not load courses.
         </div>
       ) : (
-        <AudioUploadForm courses={(courses ?? []) as Course[]} />
+        <AudioUploadForm
+          courses={(courses ?? []) as Course[]}
+          editLectureId={editableLecture?.id ?? null}
+          initialCourseId={editableLecture?.course_id ?? null}
+          initialTitle={editableLecture?.title ?? ""}
+        />
       )}
     </main>
   );

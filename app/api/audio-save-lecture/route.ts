@@ -66,6 +66,7 @@ export async function POST(request: Request) {
       typeof body?.transcript === "string" ? body.transcript.trim() : "";
     const storagePath =
       typeof body?.storagePath === "string" ? body.storagePath : "";
+    const targetLectureId = Number(body?.lectureId);
 
     const notesResult = (body?.notesResult ?? {}) as NotesResult;
     const retrievedSources = Array.isArray(body?.retrievedSources)
@@ -95,26 +96,71 @@ export async function POST(request: Request) {
       used_sources: toStringArray(notesResult.used_sources),
     };
 
-    const { data: lecture, error: lectureError } = await supabase
-      .from("lectures")
-      .insert({
-        user_id: user.id,
-        course_id: courseId,
-        title,
-      })
-      .select("id")
-      .single();
+    const shouldOverwrite = Boolean(targetLectureId && !Number.isNaN(targetLectureId));
+    let lectureId = targetLectureId;
 
-    if (lectureError || !lecture) {
-      return jsonError(lectureError?.message || "Could not create lecture.", 500);
+    if (shouldOverwrite) {
+      const { data: existingLecture, error: existingLectureError } = await supabase
+        .from("lectures")
+        .select("id")
+        .eq("id", targetLectureId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (existingLectureError || !existingLecture) {
+        return jsonError("Lecture not found.", 404);
+      }
+
+      const { error: lectureUpdateError } = await supabase
+        .from("lectures")
+        .update({
+          course_id: courseId,
+          title,
+        })
+        .eq("id", targetLectureId)
+        .eq("user_id", user.id);
+
+      if (lectureUpdateError) {
+        return jsonError(lectureUpdateError.message || "Could not update lecture.", 500);
+      }
+
+      const { error: deleteChunksError } = await supabase
+        .from("lecture_chunks")
+        .delete()
+        .eq("lecture_id", targetLectureId);
+
+      if (deleteChunksError) {
+        throw new Error(deleteChunksError.message || "Could not clear lecture transcript.");
+      }
+
+      lectureId = targetLectureId;
+    } else {
+      const { data: lecture, error: lectureError } = await supabase
+        .from("lectures")
+        .insert({
+          user_id: user.id,
+          course_id: courseId,
+          title,
+        })
+        .select("id")
+        .single();
+
+      if (lectureError || !lecture) {
+        return jsonError(lectureError?.message || "Could not create lecture.", 500);
+      }
+
+      createdLectureId = lecture.id;
+      lectureId = lecture.id;
     }
 
-    createdLectureId = lecture.id;
+    if (!lectureId) {
+      return jsonError("Could not determine lecture id.", 500);
+    }
 
     const { error: chunkError } = await supabase
       .from("lecture_chunks")
       .insert({
-        lecture_id: lecture.id,
+        lecture_id: lectureId,
         chunk_number: 1,
         transcript,
       });
@@ -125,7 +171,7 @@ export async function POST(request: Request) {
 
     const stateJson = {
       source: "audio_upload",
-      lecture_id: lecture.id,
+      lecture_id: lectureId,
       course_id: courseId,
       title,
       audio_storage_path: storagePath || null,
@@ -141,11 +187,14 @@ export async function POST(request: Request) {
 
     const { error: stateError } = await supabase
       .from("lecture_state")
-      .insert({
-        lecture_id: lecture.id,
-        state_json: stateJson,
-        updated_at: new Date().toISOString(),
-      });
+      .upsert(
+        {
+          lecture_id: lectureId,
+          state_json: stateJson,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "lecture_id" }
+      );
 
     if (stateError) {
       throw new Error(stateError.message || "Could not save lecture state.");
@@ -153,7 +202,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      lectureId: lecture.id,
+      lectureId,
+      overwritten: shouldOverwrite,
     });
   } catch (error) {
     if (createdLectureId && userId) {

@@ -34,13 +34,23 @@ function safeFileName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
-export default function AudioUploadForm({ courses }: { courses: Course[] }) {
+export default function AudioUploadForm({
+  courses,
+  editLectureId = null,
+  initialCourseId = null,
+  initialTitle = "",
+}: {
+  courses: Course[];
+  editLectureId?: number | null;
+  initialCourseId?: number | null;
+  initialTitle?: string;
+}) {
   const supabase = useMemo(() => createClient(), []);
 
   const [courseId, setCourseId] = useState(
-    courses[0] ? String(courses[0].id) : ""
+    initialCourseId ? String(initialCourseId) : courses[0] ? String(courses[0].id) : ""
   );
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initialTitle);
   const [file, setFile] = useState<File | null>(null);
 
   const [storagePath, setStoragePath] = useState("");
@@ -59,7 +69,8 @@ export default function AudioUploadForm({ courses }: { courses: Course[] }) {
   const [isSavingLecture, setIsSavingLecture] = useState(false);
   const [isSendingToNotion, setIsSendingToNotion] = useState(false);
 
-  const [savedLectureId, setSavedLectureId] = useState<number | null>(null);
+  const [savedLectureId, setSavedLectureId] = useState<number | null>(editLectureId);
+  const [hasSavedLecture, setHasSavedLecture] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [notionMessage, setNotionMessage] = useState("");
 
@@ -69,8 +80,9 @@ export default function AudioUploadForm({ courses }: { courses: Course[] }) {
     setStatus("");
     setNotesResult(null);
     setRetrievedSources([]);
-    setSavedLectureId(null);
+    setSavedLectureId(editLectureId);
     setSaveMessage("");
+    setHasSavedLecture(false);
     setNotionMessage("");
 
     if (!courseId) {
@@ -148,8 +160,9 @@ export default function AudioUploadForm({ courses }: { courses: Course[] }) {
   async function handleGenerateNotes() {
     setError("");
     setStatus("");
-    setSavedLectureId(null);
+    setSavedLectureId(editLectureId);
     setSaveMessage("");
+    setHasSavedLecture(false);
     setNotionMessage("");
 
     if (!courseId) {
@@ -236,6 +249,7 @@ export default function AudioUploadForm({ courses }: { courses: Course[] }) {
           storagePath,
           notesResult,
           retrievedSources,
+          lectureId: editLectureId,
         }),
       });
 
@@ -246,7 +260,8 @@ export default function AudioUploadForm({ courses }: { courses: Course[] }) {
       }
 
       setSavedLectureId(data.lectureId ?? null);
-      setSaveMessage("Lecture saved in your app.");
+      setSaveMessage(editLectureId ? "Lecture overwritten in your app." : "Lecture saved in your app.");
+      setHasSavedLecture(true);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong.";
@@ -310,6 +325,12 @@ export default function AudioUploadForm({ courses }: { courses: Course[] }) {
         className="rounded-xl border bg-white p-6 shadow-sm"
       >
         <h2 className="text-xl font-semibold">1. Upload lecture audio</h2>
+
+        {editLectureId ? (
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            You are editing lecture #{editLectureId}. Saving will replace its transcript and generated notes.
+          </div>
+        ) : null}
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div>
@@ -453,20 +474,23 @@ export default function AudioUploadForm({ courses }: { courses: Course[] }) {
           <div className="mt-8 rounded-lg border bg-gray-50 p-4">
             <h3 className="text-lg font-semibold">4. Save this lecture in your app</h3>
             <p className="mt-2 text-sm text-gray-600">
-              This saves the lecture title, transcript, and generated notes into
-              your existing lecture tables so later chunked updates can build on it.
+              {editLectureId
+                ? "This will overwrite this lecture with your new transcript and regenerated notes."
+                : "This saves the lecture title, transcript, and generated notes into your existing lecture tables so later chunked updates can build on it."}
             </p>
 
             <button
               type="button"
               onClick={handleSaveLecture}
-              disabled={isSavingLecture || savedLectureId !== null}
+              disabled={isSavingLecture}
               className="mt-4 rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
             >
               {isSavingLecture
                 ? "Saving lecture..."
-                : savedLectureId
+                : hasSavedLecture
                 ? "Lecture saved"
+                : editLectureId
+                ? "Overwrite lecture in app"
                 : "Save lecture in app"}
             </button>
 
@@ -476,9 +500,9 @@ export default function AudioUploadForm({ courses }: { courses: Course[] }) {
 
             {savedLectureId ? (
               <p className="mt-2 text-sm text-gray-700">
-                Saved as lecture #{savedLectureId}. View it on{" "}
-                <Link href="/dashboard" className="underline">
-                  Dashboard
+                {editLectureId ? "Updated lecture" : "Saved as lecture"} #{savedLectureId}. View it on{" "}
+                <Link href={editLectureId ? `/lectures/${savedLectureId}` : "/dashboard"} className="underline">
+                  {editLectureId ? "lecture page" : "Dashboard"}
                 </Link>
                 .
               </p>

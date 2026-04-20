@@ -39,12 +39,22 @@ function getSupportedMimeType() {
   return "";
 }
 
-export default function LiveRecordForm({ courses: initialCourses = [] }: { courses?: Course[] }) {
+export default function LiveRecordForm({
+  courses: initialCourses = [],
+  editLectureId = null,
+  initialCourseId = null,
+  initialTitle = "",
+}: {
+  courses?: Course[];
+  editLectureId?: number | null;
+  initialCourseId?: number | null;
+  initialTitle?: string;
+}) {
   const supabase = createClient();
 
   const [courses, setCourses] = useState<Course[]>(initialCourses);
-  const [courseId, setCourseId] = useState("");
-  const [title, setTitle] = useState("");
+  const [courseId, setCourseId] = useState(initialCourseId ? String(initialCourseId) : "");
+  const [title, setTitle] = useState(initialTitle);
 
   const [isStarting, setIsStarting] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -80,7 +90,11 @@ export default function LiveRecordForm({ courses: initialCourses = [] }: { cours
       const startRes = await fetch("/api/live-session/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId: Number(courseId), title: title.trim() }),
+        body: JSON.stringify({
+          courseId: Number(courseId),
+          title: title.trim(),
+          lectureId: editLectureId,
+        }),
       });
 
       const startData = await startRes.json();
@@ -265,6 +279,12 @@ export default function LiveRecordForm({ courses: initialCourses = [] }: { cours
 
   return (
     <div className="space-y-6 rounded-2xl border p-6">
+      {editLectureId ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          You are editing lecture #{editLectureId}. Starting a session will replace its existing chunks and notes.
+        </div>
+      ) : null}
+
       <div className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium">Course</label>
@@ -300,7 +320,11 @@ export default function LiveRecordForm({ courses: initialCourses = [] }: { cours
             disabled={isRecording || isStarting}
             className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
           >
-            {isStarting ? "Starting..." : "Start live lecture"}
+            {isStarting
+              ? "Starting..."
+              : editLectureId
+              ? "Start overwrite recording"
+              : "Start live lecture"}
           </button>
 
           <button
