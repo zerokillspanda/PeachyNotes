@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AddMaterialForm from './add-material-form'
+import MaterialItemActions from './material-item-actions'
 
 export default async function MaterialsPage() {
   const supabase = await createClient()
@@ -60,6 +61,10 @@ export default async function MaterialsPage() {
               <p className="text-sm text-gray-600">
                 Created: {new Date(material.created_at).toLocaleString()}
               </p>
+              <MaterialItemActions
+                id={material.id}
+                initialTitle={material.title}
+              />
             </div>
           ))}
         </div>

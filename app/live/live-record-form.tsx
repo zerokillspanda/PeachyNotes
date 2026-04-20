@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useRef, useState } from "react";
 
 type Course = {
   id: number;
@@ -40,9 +39,7 @@ function getSupportedMimeType() {
 }
 
 export default function LiveRecordForm({ courses: initialCourses = [] }: { courses?: Course[] }) {
-  const supabase = createClient();
-
-  const [courses, setCourses] = useState<Course[]>(initialCourses);
+  const [courses] = useState<Course[]>(initialCourses);
   const [courseId, setCourseId] = useState("");
   const [title, setTitle] = useState("");
 
