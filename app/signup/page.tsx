@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 export default function SignupPage() {
-  const supabase = createClient()
   const router = useRouter()
 
   const [email, setEmail] = useState('')
@@ -15,6 +14,7 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    const supabase = createClient()
     const { error } = await supabase.auth.signUp({
       email,
       password,
