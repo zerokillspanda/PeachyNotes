@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import DeleteLectureButton from "./delete-lecture-button";
 
 type LectureRow = {
   id: number;
@@ -167,28 +168,52 @@ export default async function LectureDetailPage({
   const notionUrl = buildNotionUrl(typedLecture.notion_page_id);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="app-page">
       <div className="mb-8">
         <div className="mb-4 flex flex-wrap gap-3 text-sm text-gray-600">
-          <Link href="/dashboard" className="underline">
+          <Link href="/dashboard" className="soft-link">
             Dashboard
           </Link>
-          <Link href="/audio" className="underline">
+          <Link href="/audio" className="soft-link">
             Audio
           </Link>
-          <Link href="/generate" className="underline">
+          <Link href="/generate" className="soft-link">
             Generate
           </Link>
         </div>
 
-        <h1 className="text-3xl font-bold">{typedLecture.title}</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <h1 className="page-title">{typedLecture.title}</h1>
+        <p className="page-subtitle">
           Detailed view of this saved lecture session.
         </p>
       </div>
 
+      <div className="panel mb-8">
+        <h2 className="text-xl font-semibold">Edit / Overwrite this lecture</h2>
+        <p className="mt-2 text-sm text-gray-700">
+          Want to replace these notes with fresh audio? Choose one of the overwrite options below.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href={`/live?editLectureId=${typedLecture.id}`}
+            className="soft-link bg-[#f8d4bf] text-[#2f2119]"
+          >
+            Start live overwrite
+          </Link>
+          <Link
+            href={`/audio?editLectureId=${typedLecture.id}`}
+            className="soft-link bg-[#d4e0ef] text-[#2f2119]"
+          >
+            Upload audio to overwrite
+          </Link>
+        </div>
+        <div className="mt-4">
+          <DeleteLectureButton lectureId={typedLecture.id} />
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
+        <div className="panel">
           <h2 className="text-lg font-semibold">Lecture Info</h2>
           <div className="mt-4 space-y-2 text-sm text-gray-700">
             <p>
@@ -212,7 +237,7 @@ export default async function LectureDetailPage({
           </div>
         </div>
 
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
+        <div className="panel">
           <h2 className="text-lg font-semibold">Notion Status</h2>
           <div className="mt-4 space-y-2 text-sm text-gray-700">
             <p>
@@ -226,7 +251,7 @@ export default async function LectureDetailPage({
                   href={notionUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="underline"
+                  className="soft-link"
                 >
                   Open Notion page
                 </a>
@@ -240,7 +265,7 @@ export default async function LectureDetailPage({
         </div>
       </div>
 
-      <div className="mt-8 rounded-xl border bg-white p-6 shadow-sm">
+      <div className="panel mt-8">
         <h2 className="text-xl font-semibold">Lecture Summary</h2>
         <p className="mt-3 whitespace-pre-wrap text-sm text-gray-800">
           {lectureSummary || "No lecture summary saved yet."}
@@ -248,7 +273,7 @@ export default async function LectureDetailPage({
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="panel">
           <h2 className="text-xl font-semibold">Key Topics</h2>
           {keyTopics.length > 0 ? (
             <ul className="mt-4 list-disc space-y-1 pl-6 text-sm text-gray-800">
@@ -261,7 +286,7 @@ export default async function LectureDetailPage({
           )}
         </div>
 
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="panel">
           <h2 className="text-xl font-semibold">Authorities Mentioned</h2>
           {authorities.length > 0 ? (
             <ul className="mt-4 list-disc space-y-1 pl-6 text-sm text-gray-800">
@@ -277,7 +302,7 @@ export default async function LectureDetailPage({
         </div>
       </div>
 
-      <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+      <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/70 p-6 shadow-[0_8px_24px_rgba(36,25,15,0.08)]">
         <h2 className="text-xl font-semibold">
           From course notes: not clearly covered in class
         </h2>
@@ -295,7 +320,7 @@ export default async function LectureDetailPage({
         )}
       </div>
 
-      <div className="mt-8 rounded-xl border bg-white p-6 shadow-sm">
+      <div className="panel mt-8">
         <h2 className="text-xl font-semibold">Used Sources</h2>
         {usedSources.length > 0 ? (
           <ul className="mt-4 list-disc space-y-1 pl-6 text-sm text-gray-800">
@@ -308,20 +333,20 @@ export default async function LectureDetailPage({
         )}
       </div>
 
-      <div className="mt-8 rounded-xl border bg-white p-6 shadow-sm">
+      <div className="panel mt-8">
         <h2 className="text-xl font-semibold">Full Transcript</h2>
         <p className="mt-3 whitespace-pre-wrap text-sm text-gray-800">
           {fullTranscript || "No transcript saved yet."}
         </p>
       </div>
 
-      <div className="mt-8 rounded-xl border bg-white p-6 shadow-sm">
+      <div className="panel mt-8">
         <h2 className="text-xl font-semibold">Saved Transcript Chunks</h2>
 
         {typedChunks.length > 0 ? (
           <div className="mt-4 space-y-4">
             {typedChunks.map((chunk) => (
-              <div key={chunk.id} className="rounded-lg border p-4">
+              <div key={chunk.id} className="rounded-xl border border-[#e4d5c8] bg-[#fffdf9] p-4">
                 <p className="text-sm font-semibold">
                   Chunk {chunk.chunk_number}
                 </p>
@@ -339,13 +364,13 @@ export default async function LectureDetailPage({
         )}
       </div>
 
-      <div className="mt-8 rounded-xl border bg-white p-6 shadow-sm">
+      <div className="panel mt-8">
         <h2 className="text-xl font-semibold">Retrieved Course-Note Chunks</h2>
 
         {retrievedSources.length > 0 ? (
           <div className="mt-4 space-y-4">
             {retrievedSources.map((source, index) => (
-              <div key={index} className="rounded-lg border p-4">
+              <div key={index} className="rounded-xl border border-[#e4d5c8] bg-[#fffdf9] p-4">
                 <p className="text-sm font-semibold">
                   {source.title || `Source ${index + 1}`}
                 </p>

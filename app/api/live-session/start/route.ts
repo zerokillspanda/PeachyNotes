@@ -7,6 +7,25 @@ function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
+function buildInitialState(lectureId: number, courseId: number, title: string) {
+  return {
+    source: "live_recording",
+    lecture_id: lectureId,
+    course_id: courseId,
+    title,
+    full_transcript: "",
+    lecture_summary: "",
+    key_topics: [],
+    authorities_mentioned: [],
+    supplement_bubble: [],
+    used_sources: [],
+    retrieved_sources: [],
+    latest_chunk_number: 0,
+    audio_chunk_storage_paths: [],
+    saved_at: new Date().toISOString(),
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -22,6 +41,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const courseId = Number(body?.courseId);
+    const lectureId = Number(body?.lectureId);
     const title =
       typeof body?.title === "string" ? body.title.trim() : "";
 
@@ -31,6 +51,66 @@ export async function POST(request: Request) {
 
     if (!title) {
       return jsonError("Lecture title is required.");
+    }
+
+    const isOverwrite = Boolean(lectureId && !Number.isNaN(lectureId));
+
+    if (isOverwrite) {
+      const { data: existingLecture, error: existingLectureError } = await supabase
+        .from("lectures")
+        .select("id")
+        .eq("id", lectureId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (existingLectureError || !existingLecture) {
+        return jsonError("Lecture not found.", 404);
+      }
+
+      const { error: updateLectureError } = await supabase
+        .from("lectures")
+        .update({ course_id: courseId, title })
+        .eq("id", lectureId)
+        .eq("user_id", user.id);
+
+      if (updateLectureError) {
+        return jsonError(updateLectureError.message || "Could not update lecture.", 500);
+      }
+
+      const { error: deleteChunksError } = await supabase
+        .from("lecture_chunks")
+        .delete()
+        .eq("lecture_id", lectureId);
+
+      if (deleteChunksError) {
+        return jsonError(deleteChunksError.message || "Could not clear existing lecture chunks.", 500);
+      }
+
+      const initialState = buildInitialState(lectureId, courseId, title);
+
+      const { error: stateError } = await supabase
+        .from("lecture_state")
+        .upsert(
+          {
+            lecture_id: lectureId,
+            state_json: initialState,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "lecture_id" }
+        );
+
+      if (stateError) {
+        return jsonError(
+          stateError.message || "Could not reset lecture state.",
+          500
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        lectureId,
+        overwritten: true,
+      });
     }
 
     const { data: lecture, error: lectureError } = await supabase
@@ -50,22 +130,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const initialState = {
-      source: "live_recording",
-      lecture_id: lecture.id,
-      course_id: courseId,
-      title,
-      full_transcript: "",
-      lecture_summary: "",
-      key_topics: [],
-      authorities_mentioned: [],
-      supplement_bubble: [],
-      used_sources: [],
-      retrieved_sources: [],
-      latest_chunk_number: 0,
-      audio_chunk_storage_paths: [],
-      saved_at: new Date().toISOString(),
-    };
+    const initialState = buildInitialState(lecture.id, courseId, title);
 
     const { error: stateError } = await supabase
       .from("lecture_state")
@@ -91,6 +156,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       lectureId: lecture.id,
+      overwritten: false,
     });
   } catch (error) {
     const message =

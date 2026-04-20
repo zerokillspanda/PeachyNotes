@@ -8,6 +8,13 @@ type SearchParams = Promise<{
   notion_error?: string
 }>
 
+const quickActions = [
+  { href: '/live', icon: '🎙️', label: 'Start Live Recording', tone: 'bg-[color:var(--accent-peach)]/70' },
+  { href: '/audio', icon: '☁️', label: 'Upload Audio', tone: 'bg-[color:var(--accent-blue)]/70' },
+  { href: '/materials', icon: '📄', label: 'Materials', tone: 'bg-[color:var(--accent-green)]/70' },
+  { href: '/search', icon: '🔎', label: 'Search', tone: 'bg-[color:var(--accent-lavender)]/70' },
+]
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -37,61 +44,64 @@ export default async function DashboardPage({
     .eq('user_id', data.user.id)
     .maybeSingle()
 
-  const courseMap = new Map(
-    (courses ?? []).map((course) => [course.id, course.name])
-  )
+  const courseMap = new Map((courses ?? []).map((course) => [course.id, course.name]))
 
   return (
-    <main className="min-h-screen p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-1">Dashboard</h1>
-      <p className="text-sm text-gray-500 mb-6">Logged in as: {data.user.email}</p>
+    <main className="app-page max-w-4xl">
+      <h1 className="page-title">Dashboard</h1>
+      <p className="page-subtitle">Logged in as: {data.user.email}</p>
 
       {params.notion_connected && (
-        <p className="mb-4 rounded border border-green-300 bg-green-50 p-3 text-green-700">
+        <p className="mb-4 mt-6 rounded-xl border border-emerald-300/60 bg-emerald-50 p-3 text-emerald-800">
           Notion connected successfully.
         </p>
       )}
 
       {params.notion_error && (
-        <p className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-red-700">
+        <p className="mb-4 mt-6 rounded-xl border border-red-300/70 bg-red-50 p-3 text-red-700">
           Notion error: {params.notion_error}
         </p>
       )}
 
-      <div className="grid grid-cols-4 gap-3 mb-8">
-        <a href="/live" className="bg-red-50 border border-red-200 rounded-xl p-3 text-center hover:shadow-sm transition">
-          <p className="text-base mb-1">🔴</p>
-          <p className="text-xs font-medium">Live Record</p>
-        </a>
-        <a href="/audio" className="bg-white border rounded-xl p-3 text-center hover:shadow-sm transition">
-          <p className="text-base mb-1">🎙️</p>
-          <p className="text-xs font-medium">Upload Audio</p>
-        </a>
-        <a href="/materials" className="bg-white border rounded-xl p-3 text-center hover:shadow-sm transition">
-          <p className="text-base mb-1">📄</p>
-          <p className="text-xs font-medium">Materials</p>
-        </a>
-        <a href="/search" className="bg-white border rounded-xl p-3 text-center hover:shadow-sm transition">
-          <p className="text-base mb-1">🔍</p>
-          <p className="text-xs font-medium">Search</p>
-        </a>
+      <div className="mt-7 grid gap-3 md:grid-cols-4">
+        {quickActions.map((action) => (
+          <a
+            key={action.href}
+            href={action.href}
+            className={`rounded-2xl border border-[#e5d6c8] p-4 text-center shadow-[0_6px_16px_rgba(36,25,15,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(36,25,15,0.12)] ${action.tone}`}
+          >
+            <p className="text-lg">{action.icon}</p>
+            <p className="mt-1 text-sm font-semibold text-[#2f2119]">{action.label}</p>
+          </a>
+        ))}
       </div>
 
-      <section className="mb-8 border rounded-xl p-4 bg-white">
-        <h2 className="text-lg font-semibold mb-2">Notion Connection</h2>
+      <section className="panel mt-8">
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="text-3xl font-semibold tracking-tight">Notion Connection</h2>
+          <span
+            aria-label="Notion logo"
+            title="Notion"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#d9cabc] bg-white text-lg font-black text-black"
+          >
+            N
+          </span>
+        </div>
         {notionConnection ? (
-          <div className="space-y-1 text-sm text-gray-700">
-            <p>✅ Connected to <span className="font-medium">{notionConnection.workspace_name || 'Unnamed workspace'}</span></p>
-            <p className="text-xs text-gray-400">Workspace ID: {notionConnection.workspace_id}</p>
+          <div className="mt-3 space-y-1 text-sm text-[#5f4f40]">
+            <p>
+              ✅ Connected to <span className="font-semibold">{notionConnection.workspace_name || 'Unnamed workspace'}</span>
+            </p>
+            <p className="text-xs opacity-70">Workspace ID: {notionConnection.workspace_id}</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-gray-700">
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-[#5f4f40]">
               Connect your Notion workspace so this app can create lecture notes there.
             </p>
             <a
               href="/api/notion/connect"
-              className="inline-block rounded bg-black px-4 py-2 text-sm text-white hover:bg-gray-800 transition"
+              className="inline-block rounded-xl bg-[#1f140d] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#352318]"
             >
               Connect Notion
             </a>
@@ -99,41 +109,40 @@ export default async function DashboardPage({
         )}
       </section>
 
-      <div className="flex gap-3 mb-8">
+      <div className="mt-8 flex flex-wrap items-start gap-3">
         <CreateLectureButton userId={data.user.id} courses={courses ?? []} />
         <LogoutButton />
       </div>
 
-      {coursesError && (
-        <p className="text-red-600 mb-4">{coursesError.message}</p>
-      )}
+      {coursesError && <p className="mb-4 mt-4 text-red-700">{coursesError.message}</p>}
 
-      <h2 className="text-xl font-semibold mb-4">Your Lectures</h2>
+      <h2 className="mt-10 text-4xl font-semibold tracking-tight">Your Lectures</h2>
 
-      {lecturesError && (
-        <p className="text-red-600 mb-4">{lecturesError.message}</p>
-      )}
+      {lecturesError && <p className="mb-4 mt-4 text-red-700">{lecturesError.message}</p>}
 
       {!lectures || lectures.length === 0 ? (
-        <div className="border rounded-xl p-8 text-center text-gray-400 text-sm bg-white">
-          No lectures yet. Hit <strong>Live Record</strong> or <strong>Upload Audio</strong> to get started.
+        <div className="panel mt-4 text-center text-[#5f4f40]">
+          No lectures yet. Hit <strong className="font-semibold text-[#2f2119]">Live Record</strong> or{' '}
+          <strong className="font-semibold text-[#2f2119]">Upload Audio</strong> to get started.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="mt-4 space-y-3">
           {lectures.map((lecture) => (
             <a
               key={lecture.id}
               href={`/lectures/${lecture.id}`}
-              className="block border rounded-xl p-4 bg-white hover:shadow-sm hover:border-gray-300 transition-all"
+              className="panel block transition hover:-translate-y-0.5 hover:border-[#dbc5b3]"
             >
-              <p className="font-medium">{lecture.title}</p>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className="text-lg font-semibold text-[#2f2119]">{lecture.title}</p>
+              <p className="mt-1 text-sm text-[#6b5848]">
                 {lecture.course_id ? courseMap.get(lecture.course_id) : 'No course'} ·{' '}
                 {new Date(lecture.created_at).toLocaleDateString('en-IN', {
-                  day: 'numeric', month: 'short', year: 'numeric',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
                 })}
               </p>
-              <p className="text-xs text-blue-500 mt-2">View notes →</p>
+              <p className="mt-2 text-xs font-semibold text-[#6c5dd3]">View notes →</p>
             </a>
           ))}
         </div>

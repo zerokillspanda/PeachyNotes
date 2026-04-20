@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #f8f3ee;
+  --foreground: #24190f;
+  --paper: #fffdf9;
+  --border: #eadbcb;
+  --muted: #7f6d5d;
+  --accent-peach: #f7c4a8;
+  --accent-blue: #95b4d1;
+  --accent-green: #9fc3af;
+  --accent-lavender: #cbc2ec;
 }
 
 @theme inline {
@@ -12,15 +20,42 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
 }
 
+html,
 body {
-  background: var(--background);
+  color-scheme: light;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 96% 12%, color-mix(in srgb, var(--accent-peach) 35%, white), transparent 38%),
+    radial-gradient(circle at 14% 88%, color-mix(in srgb, var(--accent-lavender) 20%, white), transparent 34%),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Georgia, "Times New Roman", Times, serif;
+}
+
+@layer components {
+  .app-page {
+    @apply mx-auto w-full max-w-5xl px-6 py-8 md:py-10;
+  }
+
+  .page-title {
+    @apply text-3xl font-semibold tracking-tight text-[#23160f];
+  }
+
+  .page-subtitle {
+    color: var(--muted);
+    @apply mt-2 text-sm;
+  }
+
+  .panel {
+    background: color-mix(in srgb, var(--paper) 94%, white);
+    @apply rounded-2xl border p-5 shadow-[0_8px_24px_rgba(36,25,15,0.08)];
+  }
+
+  .soft-link {
+    @apply inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium transition hover:bg-white;
+  }
 }

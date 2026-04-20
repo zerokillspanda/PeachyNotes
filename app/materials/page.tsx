@@ -67,16 +67,22 @@ export default function MaterialsPage() {
     setDeletingId(id);
     setDeleteError("");
 
-    const res = await fetch(`/api/materials/${id}`, { method: "DELETE" });
-    const data = await res.json();
+    try {
+      const res = await fetch(`/api/materials/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      setDeleteError(data.error || "Delete failed.");
-    } else {
-      setMaterials((prev) => prev.filter((m) => m.id !== id));
+      if (!res.ok) {
+        setDeleteError(data.error || "Delete failed.");
+      } else {
+        setMaterials((prev) => prev.filter((m) => m.id !== id));
+      }
+    } catch {
+      setDeleteError("Delete failed. Please try again.");
+    } finally {
+      setDeletingId(null);
     }
-    setDeletingId(null);
   }
+
 
   function startRename(material: Material) {
     setRenamingId(material.id);
@@ -98,33 +104,39 @@ export default function MaterialsPage() {
     setRenameLoading(true);
     setRenameError("");
 
-    const res = await fetch(`/api/materials/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: renameValue.trim() }),
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch(`/api/materials/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: renameValue.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      setRenameError(data.error || "Rename failed.");
-    } else {
-      setMaterials((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, title: data.title } : m))
-      );
-      cancelRename();
+      if (!res.ok) {
+        setRenameError(data.error || "Rename failed.");
+      } else {
+        setMaterials((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, title: data.title } : m))
+        );
+        cancelRename();
+      }
+    } catch {
+      setRenameError("Rename failed. Please try again.");
+    } finally {
+      setRenameLoading(false);
     }
-    setRenameLoading(false);
   }
 
+
   return (
-    <main className="min-h-screen p-6 max-w-4xl mx-auto">
+    <main className="app-page max-w-4xl">
       <div className="mb-6">
-        <Link href="/dashboard" className="underline">
+        <Link href="/dashboard" className="soft-link">
           ← Back to dashboard
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-2">Course Materials</h1>
+      <h1 className="page-title mb-2">Course Materials</h1>
       <p className="mb-6">Add your college notes here so the app can learn from them.</p>
 
       <div className="mb-10">
@@ -141,7 +153,7 @@ export default function MaterialsPage() {
       ) : (
         <div className="space-y-3">
           {materials.map((material) => (
-            <div key={material.id} className="border rounded p-4">
+            <div key={material.id} className="panel">
               {renamingId === material.id ? (
                 <div className="space-y-2">
                   <input

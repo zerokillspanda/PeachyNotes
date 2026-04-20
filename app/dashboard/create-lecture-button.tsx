@@ -59,7 +59,7 @@ export default function CreateLectureButton({ userId, courses }: Props) {
       <select
         value={selectedCourseId}
         onChange={(e) => setSelectedCourseId(e.target.value)}
-        className="border rounded px-3 py-2"
+        className="rounded-xl border border-[#dcc9b8] bg-[#fffaf5] px-4 py-2 text-sm text-[#2f2119] shadow-sm focus:border-[#c7ab95] focus:outline-none"
       >
         {courses.map((course) => (
           <option key={course.id} value={course.id}>
@@ -71,12 +71,12 @@ export default function CreateLectureButton({ userId, courses }: Props) {
       <button
         onClick={handleCreateLecture}
         disabled={loading || courses.length === 0}
-        className="rounded bg-blue-600 text-white px-4 py-2"
+        className="rounded-xl bg-[#3a6294] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#304f78] disabled:opacity-60"
       >
         {loading ? 'Creating...' : 'Create Lecture'}
       </button>
 
-      {message && <p className="text-sm">{message}</p>}
+      {message && <p className="text-sm text-[#6b5848]">{message}</p>}
     </div>
   )
 }
