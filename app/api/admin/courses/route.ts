@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const ADMIN_USER_ID = '7e49b324-6aae-4c84-9703-bd94822eef1a'
 
@@ -31,17 +32,23 @@ export async function POST(request: Request) {
       return jsonError('Course name is required.')
     }
 
-    const { data: existing } = await supabase
+    const adminSupabase = createAdminClient()
+
+    const { data: existing, error: existingError } = await adminSupabase
       .from('courses')
       .select('id, name')
       .ilike('name', name)
       .maybeSingle()
 
+    if (existingError) {
+      return jsonError(existingError.message, 500)
+    }
+
     if (existing) {
       return jsonError('A course with this name already exists.')
     }
 
-    const { data: createdCourse, error: createError } = await supabase
+    const { data: createdCourse, error: createError } = await adminSupabase
       .from('courses')
       .insert({ name })
       .select('id, name')
