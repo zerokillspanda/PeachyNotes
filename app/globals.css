@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --background: #f8f3ee;
   --foreground: #24190f;
   --paper: #fffdf9;
@@ -23,7 +24,9 @@
   border-color: var(--border);
 }
 
+html,
 body {
+  color-scheme: light;
   min-height: 100vh;
   background:
     radial-gradient(circle at 96% 12%, color-mix(in srgb, var(--accent-peach) 35%, white), transparent 38%),

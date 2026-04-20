@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import DeleteLectureButton from "./delete-lecture-button";
 
 type LectureRow = {
   id: number;
@@ -205,6 +206,9 @@ export default async function LectureDetailPage({
           >
             Upload audio to overwrite
           </Link>
+        </div>
+        <div className="mt-4">
+          <DeleteLectureButton lectureId={typedLecture.id} />
         </div>
       </div>
 

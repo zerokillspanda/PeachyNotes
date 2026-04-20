@@ -77,7 +77,16 @@ export default async function DashboardPage({
       </div>
 
       <section className="panel mt-8">
-        <h2 className="text-3xl font-semibold tracking-tight">Notion Connection</h2>
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="text-3xl font-semibold tracking-tight">Notion Connection</h2>
+          <span
+            aria-label="Notion logo"
+            title="Notion"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#d9cabc] bg-white text-lg font-black text-black"
+          >
+            N
+          </span>
+        </div>
         {notionConnection ? (
           <div className="mt-3 space-y-1 text-sm text-[#5f4f40]">
             <p>
