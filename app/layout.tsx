@@ -1,44 +1,46 @@
-import type { Metadata } from "next";
+import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "PeachyNotes",
-  description: "AI-powered legal lecture notes",
-};
+const inter = Inter({ 
+  subsets: ["latin"], 
+  variable: "--font-inter" 
+});
+
+const merriweather = Merriweather({ 
+  weight: ["300", "400", "700"], 
+  subsets: ["latin"], 
+  variable: "--font-merriweather" 
+});
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="flex min-h-screen bg-gray-50 text-gray-900">
-        <aside className="hidden md:flex w-52 shrink-0 flex-col border-r bg-white px-3 py-6">
-          <div className="mb-8 px-2">
-            <p className="text-base font-bold tracking-tight">🍑 PeachyNotes</p>
+    <html lang="en" className={`${inter.variable} ${merriweather.variable}`}>
+      <body className="flex h-screen bg-slate-900 text-slate-200 font-sans antialiased overflow-hidden">
+        
+        <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col">
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-[#FF8C69]">PeachyNotes</h1>
           </div>
-          <nav className="flex flex-col gap-0.5 text-sm">
-            <NavLink href="/dashboard">Dashboard</NavLink>
-            <NavLink href="/live">🔴 Live Record</NavLink>
-            <NavLink href="/audio">Upload Audio</NavLink>
-            <NavLink href="/materials">Materials</NavLink>
-            <NavLink href="/generate">Generate Notes</NavLink>
-            <NavLink href="/search">Search</NavLink>
-            <div className="my-3 border-t" />
-            <NavLink href="/notion">Notion Sync</NavLink>
+          
+          <nav className="flex-1 px-4 flex flex-col gap-2 mt-4">
+            <Link href="/dashboard" className="p-3 rounded-lg hover:bg-slate-800 hover:text-white transition">
+              Dashboard
+            </Link>
+            <Link href="/materials" className="p-3 rounded-lg hover:bg-slate-800 hover:text-white transition">
+              Materials
+            </Link>
+            <Link href="/search" className="p-3 rounded-lg hover:bg-slate-800 hover:text-white transition">
+              Search
+            </Link>
           </nav>
         </aside>
-        <main className="flex-1 overflow-y-auto">{children}</main>
+
+        <main className="flex-1 overflow-y-auto bg-slate-900 p-8">
+          {children}
+        </main>
+        
       </body>
     </html>
-  );
-}
-
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-md px-3 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-    >
-      {children}
-    </Link>
   );
 }

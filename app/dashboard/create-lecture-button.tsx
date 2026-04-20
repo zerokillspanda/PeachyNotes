@@ -1,82 +1,16 @@
-'use client'
+"use client";
 
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRouter } from "next/navigation";
 
-type Course = {
-  id: number
-  name: string
-}
-
-type Props = {
-  userId: string
-  courses: Course[]
-}
-
-export default function CreateLectureButton({ userId, courses }: Props) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-  const [selectedCourseId, setSelectedCourseId] = useState(
-    courses.length > 0 ? String(courses[0].id) : ''
-  )
-
-  const handleCreateLecture = async () => {
-    if (!selectedCourseId) {
-      setMessage('Please choose a course.')
-      return
-    }
-
-    setLoading(true)
-    setMessage('')
-
-    const supabase = createClient()
-
-    const selectedCourse = courses.find(
-      (course) => String(course.id) === selectedCourseId
-    )
-
-    const { error } = await supabase.from('lectures').insert({
-      user_id: userId,
-      course_id: Number(selectedCourseId),
-      title: `${selectedCourse?.name ?? 'Lecture'} - ${new Date().toLocaleString()}`,
-    })
-
-    if (error) {
-      setMessage(error.message)
-      setLoading(false)
-      return
-    }
-
-    setMessage('Lecture created successfully.')
-    setLoading(false)
-    router.refresh()
-  }
+export default function CreateLectureButton() {
+  const router = useRouter();
 
   return (
-    <div className="space-y-2">
-      <select
-        value={selectedCourseId}
-        onChange={(e) => setSelectedCourseId(e.target.value)}
-        className="border rounded px-3 py-2"
-      >
-        {courses.map((course) => (
-          <option key={course.id} value={course.id}>
-            {course.name}
-          </option>
-        ))}
-      </select>
-
-      <button
-        onClick={handleCreateLecture}
-        disabled={loading || courses.length === 0}
-        className="rounded bg-blue-600 text-white px-4 py-2"
-      >
-        {loading ? 'Creating...' : 'Create Lecture'}
-      </button>
-
-      {message && <p className="text-sm">{message}</p>}
-    </div>
-  )
+    <button
+      onClick={() => router.push("/live")}
+      className="bg-[#FF8C69] text-slate-950 font-bold py-4 px-10 rounded-full text-lg shadow-[0_0_20px_rgba(255,140,105,0.3)] hover:scale-105 hover:bg-[#ff9c7d] transition-all duration-200"
+    >
+      Start Live Session
+    </button>
+  );
 }
