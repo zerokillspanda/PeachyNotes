@@ -32,40 +32,46 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const documentId = Number(id);
+  try {
+    const { id } = await params;
+    const documentId = Number(id);
 
-  if (Number.isNaN(documentId)) return jsonError("Invalid material ID.");
+    if (Number.isNaN(documentId)) return jsonError("Invalid material ID.");
 
-  const { error: authError } = await ensureAdminUser();
-  if (authError) return authError;
+    const { error: authError } = await ensureAdminUser();
+    if (authError) return authError;
 
-  const adminSupabase = createAdminClient();
+    const adminSupabase = createAdminClient();
 
-  const { data: existingDoc, error: findError } = await adminSupabase
-    .from("course_documents")
-    .select("id")
-    .eq("id", documentId)
-    .maybeSingle();
+    const { data: existingDoc, error: findError } = await adminSupabase
+      .from("course_documents")
+      .select("id")
+      .eq("id", documentId)
+      .maybeSingle();
 
-  if (findError) return jsonError(findError.message, 500);
-  if (!existingDoc) return jsonError("Material not found.", 404);
+    if (findError) return jsonError(findError.message, 500);
+    if (!existingDoc) return jsonError("Material not found.", 404);
 
-  const { error: chunksError } = await adminSupabase
-    .from("course_chunks")
-    .delete()
-    .eq("document_id", documentId);
+    const { error: chunksError } = await adminSupabase
+      .from("course_chunks")
+      .delete()
+      .eq("document_id", documentId);
 
-  if (chunksError) return jsonError(chunksError.message, 500);
+    if (chunksError) return jsonError(chunksError.message, 500);
 
-  const { error: documentError } = await adminSupabase
-    .from("course_documents")
-    .delete()
-    .eq("id", documentId);
+    const { error: documentError } = await adminSupabase
+      .from("course_documents")
+      .delete()
+      .eq("id", documentId);
 
-  if (documentError) return jsonError(documentError.message, 500);
+    if (documentError) return jsonError(documentError.message, 500);
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Something went wrong.";
+    return jsonError(message, 500);
+  }
 }
 
 // PATCH /api/materials/[id] — renames a material
@@ -73,29 +79,35 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const documentId = Number(id);
+  try {
+    const { id } = await params;
+    const documentId = Number(id);
 
-  if (Number.isNaN(documentId)) return jsonError("Invalid material ID.");
+    if (Number.isNaN(documentId)) return jsonError("Invalid material ID.");
 
-  const { error: authError } = await ensureAdminUser();
-  if (authError) return authError;
+    const { error: authError } = await ensureAdminUser();
+    if (authError) return authError;
 
-  const body = await request.json();
-  const newTitle = typeof body.title === "string" ? body.title.trim() : "";
-  if (!newTitle) return jsonError("Title cannot be empty.");
+    const body = await request.json();
+    const newTitle = typeof body.title === "string" ? body.title.trim() : "";
+    if (!newTitle) return jsonError("Title cannot be empty.");
 
-  const adminSupabase = createAdminClient();
+    const adminSupabase = createAdminClient();
 
-  const { data: updatedDoc, error: updateError } = await adminSupabase
-    .from("course_documents")
-    .update({ title: newTitle })
-    .eq("id", documentId)
-    .select("id, title")
-    .maybeSingle();
+    const { data: updatedDoc, error: updateError } = await adminSupabase
+      .from("course_documents")
+      .update({ title: newTitle })
+      .eq("id", documentId)
+      .select("id, title")
+      .maybeSingle();
 
-  if (updateError) return jsonError(updateError.message, 500);
-  if (!updatedDoc) return jsonError("Material not found.", 404);
+    if (updateError) return jsonError(updateError.message, 500);
+    if (!updatedDoc) return jsonError("Material not found.", 404);
 
-  return NextResponse.json({ success: true, title: updatedDoc.title });
+    return NextResponse.json({ success: true, title: updatedDoc.title });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Something went wrong.";
+    return jsonError(message, 500);
+  }
 }

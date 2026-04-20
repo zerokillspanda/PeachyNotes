@@ -67,16 +67,22 @@ export default function MaterialsPage() {
     setDeletingId(id);
     setDeleteError("");
 
-    const res = await fetch(`/api/materials/${id}`, { method: "DELETE" });
-    const data = await res.json();
+    try {
+      const res = await fetch(`/api/materials/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      setDeleteError(data.error || "Delete failed.");
-    } else {
-      setMaterials((prev) => prev.filter((m) => m.id !== id));
+      if (!res.ok) {
+        setDeleteError(data.error || "Delete failed.");
+      } else {
+        setMaterials((prev) => prev.filter((m) => m.id !== id));
+      }
+    } catch {
+      setDeleteError("Delete failed. Please try again.");
+    } finally {
+      setDeletingId(null);
     }
-    setDeletingId(null);
   }
+
 
   function startRename(material: Material) {
     setRenamingId(material.id);
@@ -98,23 +104,29 @@ export default function MaterialsPage() {
     setRenameLoading(true);
     setRenameError("");
 
-    const res = await fetch(`/api/materials/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: renameValue.trim() }),
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch(`/api/materials/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: renameValue.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      setRenameError(data.error || "Rename failed.");
-    } else {
-      setMaterials((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, title: data.title } : m))
-      );
-      cancelRename();
+      if (!res.ok) {
+        setRenameError(data.error || "Rename failed.");
+      } else {
+        setMaterials((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, title: data.title } : m))
+        );
+        cancelRename();
+      }
+    } catch {
+      setRenameError("Rename failed. Please try again.");
+    } finally {
+      setRenameLoading(false);
     }
-    setRenameLoading(false);
   }
+
 
   return (
     <main className="app-page max-w-4xl">
