@@ -24,10 +24,10 @@ export default async function AudioPage() {
     .order("name", { ascending: true });
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="app-page">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Audio Upload + Transcription</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <h1 className="page-title">Audio Upload + Transcription</h1>
+        <p className="page-subtitle">
           Upload one lecture audio file, transcribe it, then run your existing
           legal notes generator on the transcript.
         </p>

@@ -58,21 +58,21 @@ export default async function SearchPage({
   }
 
   return (
-    <main className="min-h-screen p-6 max-w-4xl mx-auto">
+    <main className="app-page max-w-4xl">
       <div className="mb-6">
-        <Link href="/dashboard" className="underline">
+        <Link href="/dashboard" className="soft-link">
           ← Back to dashboard
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-2">Search Course Materials</h1>
+      <h1 className="page-title mb-2">Search Course Materials</h1>
       <p className="mb-6">
         Test retrieval by searching the course notes you already saved.
       </p>
 
       {coursesError && <p className="text-red-600 mb-4">{coursesError.message}</p>}
 
-      <form method="get" className="space-y-4 border rounded p-4 mb-8">
+      <form method="get" className="panel mb-8 space-y-4">
         <div>
           <label className="block mb-1 font-medium">Choose course</label>
           <select
@@ -123,7 +123,7 @@ export default async function SearchPage({
       ) : (
         <div className="space-y-4">
           {results.map((result) => (
-            <div key={result.id} className="border rounded p-4">
+            <div key={result.id} className="panel">
               <p className="font-medium mb-2">
                 {result.course_documents.title} — Chunk {result.chunk_index}
               </p>

@@ -24,10 +24,10 @@ export default async function LivePage() {
     .order("name", { ascending: true });
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="app-page">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Live Lecture Notes</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <h1 className="page-title">Live Lecture Notes</h1>
+        <p className="page-subtitle">
           Start one live lecture session. The app will record timed chunks,
           transcribe them, and keep updating one evolving lecture state.
         </p>
